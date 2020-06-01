@@ -22,5 +22,10 @@ if [ "$ARSENIC_INIT" != 1 ]; then
     source $HOME/.oprc
   fi
 
+  xe-warp() {
+    warp=`xe warp $@`
+    cd $warp
+  }
+
   export RPROMPT='☠️'
 fi
