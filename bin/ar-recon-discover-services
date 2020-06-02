@@ -7,6 +7,9 @@ quick_scan() {
 accurate_punch(){
   echo "[+] scanning $1"
   ports=$(echo $(quick_scan $1 | grep open | cut -d/ -f1) | sed 's/ /,/g')
+  if [[ -z "$ports" ]]; then
+    exit
+  fi
   echo "[+] Version scanning $ports"
 
   nmap -oA recon/nmap-punched -n -Pn -sV -p$ports $1
