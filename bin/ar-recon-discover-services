@@ -1,7 +1,7 @@
 #! /bin/bash
 
 quick_scan() {
-    nmap --open -T5 -n -Pn -p- $1
+    nmap --open -n -Pn -p- $1
 }
 
 accurate_punch(){
