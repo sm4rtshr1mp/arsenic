@@ -6,18 +6,36 @@ quick_scan() {
 
 accurate_punch(){
   echo "[+] scanning $1"
-  ports=$(echo $(quick_scan $1 | grep open | cut -d/ -f1) | sed 's/ /,/g')
+  quick_scan $1 | tee /tmp/$1.txt
+  ports=$(echo $(cat /tmp/$1.txt | grep open | cut -d/ -f1) | sed 's/ /,/g')
+  #ports=$(echo $(quick_scan $1 | grep open | cut -d/ -f1) | sed 's/ /,/g')
+  rm /tmp/$1.txt
   if [[ -z "$ports" ]]; then
     exit
   fi
   echo "[+] Version scanning $ports"
 
-  nmap -oA recon/nmap-punched -n -Pn -sV -p$ports $1
+  nmap -oA recon/nmap-punched -n -Pn -sV -O -p$ports $1
+}
+
+init_host(){
+  hostDir="$1"
+  mkdir -p $1/loot/passwords $1/recon
+  if [ ! -f $hostDir/README.md ]; then
+    cat <<END > $hostDir/README.md
++++
+flags = ["unreviewed"]
++++
+## Host info here
+
+END
+
+  fi
 }
 
 try_punch(){
   base_dir="hosts/$ip"
-  mkdir -p $base_dir/loot/passwords $base_dir/recon
+  init_host $base_dir
   cd $base_dir
   accurate_punch $ip
   cd - 2>/dev/null
