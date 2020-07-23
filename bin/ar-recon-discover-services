@@ -8,21 +8,20 @@ accurate_punch(){
   echo "[+] scanning $1"
   quick_scan $1 | tee /tmp/$1.txt
   ports=$(echo $(cat /tmp/$1.txt | grep open | cut -d/ -f1) | sed 's/ /,/g')
-  #ports=$(echo $(quick_scan $1 | grep open | cut -d/ -f1) | sed 's/ /,/g')
   rm /tmp/$1.txt
   if [[ -z "$ports" ]]; then
     exit
   fi
   echo "[+] Version scanning $ports"
 
-  nmap -oA recon/nmap-punched -n -Pn -sV -O -p$ports $1
+  sudo nmap -oA recon/nmap-punched -n -Pn -sV -O -p$ports $1
 }
 
 init_host(){
   hostDir="$1"
   mkdir -p $1/loot/passwords $1/recon
   if [ ! -f $hostDir/README.md ]; then
-    cat <<END > $hostDir/README.md
+cat <<END > $hostDir/README.md
 +++
 flags = ["unreviewed"]
 +++
