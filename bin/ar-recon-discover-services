@@ -5,7 +5,7 @@ quick_scan() {
 }
 
 accurate_punch(){
-  echo "[+] scanning $1"
+  echo "[+] Scanning $1"
   quick_scan $1 | tee /tmp/$1.txt
   ports=$(echo $(cat /tmp/$1.txt | grep open | cut -d/ -f1) | sed 's/ /,/g')
   rm /tmp/$1.txt
@@ -34,15 +34,42 @@ END
 
 try_punch(){
   base_dir="hosts/$ip"
-  init_host $base_dir
   cd $base_dir
   accurate_punch $ip
-  cd - 2>/dev/null
+  cd - > /dev/null 2>&1
+}
+
+try_jab(){
+  base_dir="hosts/$ip"
+  init_host $base_dir
+
+  cd $base_dir
+
+  echo "[+] Scanning $1 top 1000 ports"
+  nmap -oA recon/nmap-top-1000-punched -n -Pn --top-ports 1000 $1
+
+  cd - > /dev/null 2>&1
 }
 
 fist_fight(){
   echo '[!] The fight is about to start 🔔'
   i=0
+
+  # Jab
+  for ip in `cat $1`; do
+    i=$(( i + 1))
+    try_jab &
+    if [ $i -eq 3 ]; then
+      while sleep 1; do
+        i=$(jobs | wc -l)
+        if [ $i -lt 3 ]; then
+          break;
+        fi
+      done
+    fi
+  done
+
+  # Punch
   for ip in `cat $1`; do
     i=$(( i + 1))
     try_punch &
