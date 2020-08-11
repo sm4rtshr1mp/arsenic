@@ -45,8 +45,8 @@ try_jab(){
 
   cd $base_dir
 
-  echo "[+] Scanning $1 top 1000 ports"
-  nmap -oA recon/nmap-top-1000-punched -n -Pn --top-ports 1000 $1
+  echo "[+] Scanning $ip top 1000 ports"
+  nmap -oA recon/nmap-top-1000-punched -n -Pn --top-ports 1000 $ip
 
   cd - > /dev/null 2>&1
 }
