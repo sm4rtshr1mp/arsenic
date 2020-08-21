@@ -1,5 +1,12 @@
 #! /bin/bash
 
+read -d '' readme << EOF
++++
+flags = ["unreviewed"]
++++
+## Host info here
+EOF
+
 quick_scan() {
     nmap --open -n -Pn -p- $1
 }
@@ -18,17 +25,10 @@ accurate_punch(){
 }
 
 init_host(){
-  hostDir="$1"
-  mkdir -p $1/loot/passwords $1/recon
-  if [ ! -f $hostDir/README.md ]; then
-cat <<END > $hostDir/README.md
-+++
-flags = ["unreviewed"]
-+++
-## Host info here
-
-END
-
+  host_dir="$1"
+  mkdir -p $1/recon
+  if [ ! -f $host_dir/README.md ]; then
+    echo "$readme" > $host_dir/README.md
   fi
 }
 
@@ -51,37 +51,33 @@ try_jab(){
   cd - > /dev/null 2>&1
 }
 
+throw_barrage(){
+  for ip in `cat $ip_file`; do
+    job_count=$(( job_count + 1))
+    $1 &
+    if [ $job_count -eq 3 ]; then
+      while sleep 1; do
+        job_count=$(jobs | wc -l)
+        if [ $job_count -lt 3 ]; then
+          break;
+        fi
+      done
+    fi
+  done
+}
+
 fist_fight(){
   echo '[!] The fight is about to start 🔔'
-  i=0
+  job_count=0
+  ip_file="$1"
 
   # Jab
-  for ip in `cat $1`; do
-    i=$(( i + 1))
-    try_jab &
-    if [ $i -eq 3 ]; then
-      while sleep 1; do
-        i=$(jobs | wc -l)
-        if [ $i -lt 3 ]; then
-          break;
-        fi
-      done
-    fi
-  done
+  throw_barrage "try_jab"
+  wait
 
   # Punch
-  for ip in `cat $1`; do
-    i=$(( i + 1))
-    try_punch &
-    if [ $i -eq 3 ]; then
-      while sleep 1; do
-        i=$(jobs | wc -l)
-        if [ $i -lt 3 ]; then
-          break;
-        fi
-      done
-    fi
-  done
+  throw_barrage "try_punch"
+
   wait
   echo '[!] The fist fight is over 🎉'
 }
