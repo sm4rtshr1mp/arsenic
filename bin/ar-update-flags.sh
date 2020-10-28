@@ -15,7 +15,7 @@ function getFlags {
         NOPORTS=1
       else
         echo 'PORTS'
-        cat  "hosts/$ip/recon/nmap-punched.nmap" | grep open | awk '{$1=$2=$3=""; print $0}' | grep -P '[^\s]+' | sed 's/^\s\+/SVC::/g' | sort -u
+        cat  "hosts/$ip/recon/nmap-punched.nmap" | grep -v "may be unreliable because we could not find at least 1 open and 1 closed port" | grep open | awk '{$1=$2=$3=""; print $0}' | grep -P '[^\s]+' | sed 's/^\s\+/SVC::/g' | sort -u
       fi
     else
       if [ -f "hosts/$ip/recon/${ip}_services.xml" ]; then
@@ -64,7 +64,7 @@ function getFlags {
       cat hosts/$ip/README.md \
       | grep flags \
       | cut -d= -f2 \
-      | sed 's/\(\[\|\]\)*//g' | sed 's/,/\n/g' | sed 's/"//g' | sed 's/^\s\+//g' | grep -vP "reviewed|responsive|WAPP::|WAPP-CAT::|NET::|SVC::|no-nmap|PORTS|dirbuster|aquatone"
+      | sed 's/\(\[\|\]\)*//g' | sed 's/,/\n/g' | sed 's/"//g' | sed 's/^\s\+//g' | grep -vP "reviewed|responsive|WAPP::|WAPP-CAT::|NET::|SVC::|no-nmap|PORTS|(dir|go)buster|aquatone"
     fi
 
     if [ ! -f "hosts/$ip/recon/whois.txt" ] ; then
@@ -74,6 +74,10 @@ function getFlags {
 
     if compgen -G "hosts/$ip/recon/dirbuster"* 2>&1 > /dev/null ; then
       echo dirbuster
+    fi
+
+    if compgen -G "hosts/$ip/recon/gobuster"* 2>&1 > /dev/null ; then
+      echo gobuster
     fi
 
     if compgen -G "hosts/$ip/recon/aquatone"* 2>&1 > /dev/null  ; then
@@ -92,7 +96,7 @@ function getHosts {
   elif [ ! -z "$HOST" ]; then
     echo $HOST
   else
-    find hosts -type d -maxdepth 1 -print | tail -n +2
+    find hosts -maxdepth 1 -type d  -print | tail -n +2
   fi
 }
 
