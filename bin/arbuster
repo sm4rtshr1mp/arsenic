@@ -11,8 +11,10 @@
 ##|  -r, --followredirect               Follow redirects
 ##|  -t, --token string                 Access token to be put in the Authorization header
 ##|                                         Authorization: Bearer <token>
+##|  --auth string                      Authorization header value
+##|                                         Authorization: <value>
 ##|  -w, --wordlist string              Path to the wordlist
-##|  -u, --url string                   The target URL
+##|  -u, --url string                   The target URL. Can be used multiple times to specify more target URLs
 ##|  -uf, --url-file string             The path to a file containing the target URLs
 ##|  -a, --useragent [preset, custom]   The user agent string to use. Use supplied presets or a custom string
 ##|                                     Presets
@@ -20,7 +22,7 @@
 ##|                                         Chrome = Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36
 ##|                                         Safari = Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9
 ##|  -p, --proxy string                 Proxy to use for requests [[http(s)|socks(4|5)]://host:port]
-##|  -o, --output-dir string            Output directory to write results to
+##|  -o, --output-dir string            Host specific output directory to write results to
 ##|                                     Default: recon
 ##|  -s, --status-codes string          Comma delimited list of success status codes
 ##|                                     Format: [+|-]code[,code]
@@ -30,6 +32,8 @@
 ##|                                           the provided list will override the default
 ##|         
 ##|                                     Default: 200,204,301,302,307,401,403
+##|  -k, --insecuressl                  Skip SSL certificate verification
+##|  --wildcard                         Force continued operation when wildcard found
 ##|  --                                 Pass the rest of the arguments to gobuster
 ######################################################################
 
@@ -50,11 +54,10 @@ get_as_sorted_list() {
     echo "$1" | sed 's/,/\n/g' | sort -u
 }
 get_difference() {
-    comm -23 <(get_as_sorted_list $1) <(get_as_sorted_list $2) \
-    | sed 's/\r//' | paste -sd, - # merge all lines into one comma separated list
+    comm -23 <(get_as_sorted_list $1) <(get_as_sorted_list $2) | combine_lines
 }
 combine_lines() {
-    sed 's/\r//' | paste -sd, -
+    echo $(cat -) | sed 's/\s/,/g'
 }
 list_by_prefix() {
     sed 's/,/\n/g' | grep $1 | cut -d$1 -f2
@@ -67,7 +70,11 @@ run(){
     # Check if hostname is an IP
     if echo $hostname | grep -qP "(?:(?:2(?:[0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9])\.){3}(?:(?:2([0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9]))"; then
         host=$hostname
+
+        # Get hostname from IP
+        hostname=$(host $host | grep "domain name pointer" | awk '{print $NF}' | sed 's/\.$//')
     else
+        # Get IP from hostname
         host=`host $hostname | grep "has address" | cut -d' ' -f4 | head -n 1`
         if [[ -z "$host" ]]; then
             echo "Error resolving $hostname"
@@ -78,12 +85,13 @@ run(){
     mkdir -p hosts/$host/recon
     cd hosts/$host
     if [[ -n "$hostname" ]]; then
-        if [ -f hostname ]; then
-            hostnames=`grep -v $hostname hostname`
-            echo "$hostnames" > hostname
+        if [ ! -f hostname ]; then
+            echo "$hostname" > hostname
         fi
 
-        echo $hostname >> hostname
+        echo "$hostname" >> recon/hostnames.txt
+        cat recon/hostnames.txt | sort -u > recon/hostnames.txt.new
+        mv recon/hostnames.txt.new recon/hostnames.txt
     fi
     
     gobuster dir -w $wordlist_file -u $url -o "$output_path" "${gb_args[@]}" $@
@@ -95,7 +103,7 @@ try_remove_empty_output() {
         rm "$path"
     fi
 }
-trapInterrupt() {
+graceful_exit() {
     try_remove_empty_output
 
     echo
@@ -103,7 +111,7 @@ trapInterrupt() {
     exit 0
 }
 
-trap trapInterrupt SIGINT
+trap graceful_exit SIGINT
 
 if [[ $# -eq 0 ]]; then
     show_usage
@@ -120,8 +128,18 @@ while [[ "$1" =~ ^- && ! "$1" == "--" ]]; do
         -r|--followredirect)
             add_gb_args $1
             ;;
+        -k|--insecuressl)
+            add_gb_args $1
+            ;;
+        --wildcard)
+            add_gb_args $1
+            ;;
         -t|--token) # access token for authorization
             add_gb_args -H "Authorization: Bearer $2"
+            shift
+            ;;
+        --auth)
+            add_gb_args -H "Authorization: $2"
             shift
             ;;
         -w|--wordlist)
