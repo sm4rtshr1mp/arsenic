@@ -98,10 +98,9 @@ run(){
     cd - > /dev/null
 }
 try_remove_empty_output() {
-    path="hosts/$host/$output_path"
-    if [[ -n "$output_path" && -e "$path" && ! -s "$path" ]]; then
-        rm "$path"
-    fi
+    find hosts -regex ".*/gobuster.*" -size 0 | while read file; do
+        rm $file
+    done
 }
 graceful_exit() {
     try_remove_empty_output
