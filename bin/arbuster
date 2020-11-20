@@ -157,7 +157,7 @@ while [[ "$1" =~ ^- && ! "$1" == "--" ]]; do
             shift
             ;;
         -uf|--url-file)
-            contents=`cat "$2" | grep -v "^#"`
+            contents=`cat "$2"`
             if [[ -z "$urls" ]]; then
                 urls="$contents"
             else
