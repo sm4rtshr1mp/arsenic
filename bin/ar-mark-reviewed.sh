@@ -13,4 +13,5 @@ if [ -z "$1" ]; then
 elif [ -f "hosts/$1/README.md" ]; then
   sed '0,/+++/s//+++\nreviewer = "'"$REVIEWER"'"/' "hosts/$1/README.md" | tee "hosts/$1/README.md".new
   mv "hosts/$1/README.md.new" "hosts/$1/README.md"
+  ar-update-flags.sh "$1" "reviewed"
 fi
